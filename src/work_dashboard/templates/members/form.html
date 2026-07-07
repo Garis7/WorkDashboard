@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}{{ "メンバー編集" if member else "メンバー追加" }} | WorkDashboard{% endblock %}
+
+{% block content %}
+<h1>{{ "メンバー編集" if member else "メンバー追加" }}</h1>
+
+<form method="post"
+      action="{{ '/members/' ~ member.id ~ '/edit' if member else '/members' }}">
+
+  <label>
+    名前
+    <input type="text" name="name" value="{{ member.name if member else '' }}"
+           placeholder="山田 太郎" required maxlength="100" />
+  </label>
+
+  <label>
+    <input type="checkbox" name="is_self" value="1"
+           {% if member and member.is_self %}checked{% endif %} />
+    本人（自分自身）
+  </label>
+
+  {% if member %}
+  <label>
+    <input type="checkbox" name="active" value="1"
+           {% if member.active %}checked{% endif %} />
+    在籍中（チェックを外すと退職・異動扱い）
+  </label>
+  {% endif %}
+
+  <div class="action-group">
+    <button type="submit">保存</button>
+    <a href="/members" role="button" class="secondary">キャンセル</a>
+  </div>
+</form>
+{% endblock %}

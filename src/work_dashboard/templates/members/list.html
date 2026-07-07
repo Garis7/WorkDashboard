@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}メンバー一覧 | WorkDashboard{% endblock %}
+
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center">
+  <h1>メンバー一覧</h1>
+  <a href="/members/new" role="button">＋ メンバーを追加</a>
+</div>
+
+<form method="get" action="/members">
+  <label>
+    <input type="checkbox" name="show_inactive" value="1"
+           {% if show_inactive %}checked{% endif %}
+           onchange="this.form.submit()" />
+    退職・異動者も表示
+  </label>
+</form>
+
+<figure><table>
+  <thead><tr>
+    <th>名前</th><th>状態</th><th>操作</th>
+  </tr></thead>
+  <tbody>
+  {% for m in members %}
+  <tr>
+    <td>
+      {{ m.name }}
+      {% if m.is_self %}<span class="badge">本人</span>{% endif %}
+      {% if not m.active %}<span style="color:gray;font-size:0.8em">（無効）</span>{% endif %}
+    </td>
+    <td>{{ "在籍" if m.active else "退職・異動" }}</td>
+    <td class="action-group">
+      <a href="/members/{{ m.id }}" role="button" class="secondary">詳細</a>
+      <a href="/members/{{ m.id }}/edit" role="button" class="outline">編集</a>
+    </td>
+  </tr>
+  {% else %}
+  <tr><td colspan="3">メンバーがいません。</td></tr>
+  {% endfor %}
+  </tbody>
+</table></figure>
+{% endblock %}

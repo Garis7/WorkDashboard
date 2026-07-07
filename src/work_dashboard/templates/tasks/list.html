@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}タスク一覧 | WorkDashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>タスク一覧</h1>
+  <a href="/tasks/new" role="button">＋ タスクを追加</a>
+</div>
+
+<form method="get" action="/tasks" class="filter-bar">
+  <label>
+    担当メンバー
+    <select name="member_id" onchange="this.form.submit()">
+      <option value="">すべて</option>
+      {% for m in members %}
+      <option value="{{ m.id }}"
+              {% if m.id == selected_member_id %}selected{% endif %}>
+        {{ m.name }}{% if m.is_self %} （本人）{% endif %}
+      </option>
+      {% endfor %}
+    </select>
+  </label>
+
+  <label class="checkbox-label">
+    <input type="checkbox" name="show_done" value="1"
+           {% if show_done %}checked{% endif %}
+           onchange="this.form.submit()" />
+    完了済みも表示
+  </label>
+
+  {# 絞り込み中なら件数表示 #}
+  {% if selected_member_id %}
+  <a href="/tasks" role="button" class="outline secondary">絞り込みを解除</a>
+  {% endif %}
+</form>
+
+<p>{{ tasks | length }} 件</p>
+
+<figure><table>
+  <thead><tr>
+    <th>期限</th><th>タスク名</th><th>担当</th><th>ミッション</th><th>会話</th><th>資料</th><th>状態</th><th>操作</th>
+  </tr></thead>
+  <tbody>
+  {% for task in tasks %}
+  {% set is_done = task.done_at is not none %}
+  {% set is_overdue = not is_done and task.deadline < today %}
+  <tr class="{{ 'task-done' if is_done else '' }}">
+    <td style="{{ 'color:var(--color-overdue)' if is_overdue else '' }};white-space:nowrap">
+      {{ task.deadline.strftime("%Y-%m-%d") }}
+      {% if is_overdue %}⚠{% endif %}
+    </td>
+    <td><span class="text-truncate" title="{{ task.name }}">{{ task.name }}</span></td>
+    <td>
+      <a href="/members/{{ task.member_id }}">{{ task.member.name }}</a>
+    </td>
+    <td>{{ task.mission.mission if task.mission else "—" }}</td>
+    <td>{% if task.conversation_location %}<a href="{{ task.conversation_location }}" target="_blank">🔗</a>{% endif %}</td>
+    <td>{% if task.materials_url %}<a href="{{ task.materials_url }}" target="_blank">📄</a>{% endif %}</td>
+    <td>{{ "✅ 完了" if is_done else "未完了" }}</td>
+    <td class="action-group">
+      <a href="/tasks/{{ task.id }}/edit" role="button" class="secondary">編集</a>
+      {% if not is_done %}
+      <form method="post" action="/tasks/{{ task.id }}/done" style="display:inline">
+        <button type="submit">完了</button>
+      </form>
+      {% endif %}
+      <form method="post" action="/tasks/{{ task.id }}/delete" style="display:inline"
+            onsubmit="return confirm('タスク「{{ task.name }}」を削除しますか？')">
+        <button type="submit" class="contrast outline">削除</button>
+      </form>
+    </td>
+  </tr>
+  {% else %}
+  <tr><td colspan="8">タスクがありません。</td></tr>
+  {% endfor %}
+  </tbody>
+</table></figure>
+{% endblock %}

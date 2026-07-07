@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+{% block title %}{{ member.name }} | WorkDashboard{% endblock %}
+
+{% block content %}
+{# ── ヘッダ ── #}
+<div class="page-header">
+  <div>
+    <h1>
+      {{ member.name }}
+      {% if member.is_self %}<span class="badge">本人</span>{% endif %}
+      {% if not member.active %}<span class="badge-inactive">退職・異動</span>{% endif %}
+    </h1>
+    <p><a href="/members">← メンバー一覧</a></p>
+  </div>
+  <a href="/members/{{ member.id }}/edit" role="button" class="outline">編集</a>
+</div>
+
+{# ── 期セレクタ ── #}
+<details open>
+  <summary><strong>期を選択</strong>（現行期: {{ cur_period }}）</summary>
+  <div class="period-selector">
+    {% for p in periods %}
+    <a href="/members/{{ member.id }}?period={{ p }}"
+       role="button"
+       class="{{ '' if p == selected_period else 'outline' }} {{ 'secondary' if p != cur_period else '' }}">
+      {{ period_label(p) }}{% if p == cur_period %} ✦{% endif %}
+    </a>
+    {% endfor %}
+
+    {# 現行期がまだ存在しない場合に作成ボタン #}
+    {% if cur_period not in periods %}
+    <form method="post" action="/members/{{ member.id }}/wcm/init" style="display:inline">
+      <input type="hidden" name="period" value="{{ cur_period }}" />
+      <button type="submit">＋ {{ period_label(cur_period) }} を開始する</button>
+    </form>
+    {% endif %}
+  </div>
+</details>
+
+{# ── WCM 本体 ── #}
+{% if wcm %}
+
+{# Will / Can #}
+<article>
+  <header>
+    <h2>Will / Can <small style="font-size:0.7em;color:gray">{{ period_label(selected_period) }}</small></h2>
+  </header>
+
+  {% if is_current %}
+  {# 現行期: 編集可 #}
+  <form method="post" action="/members/{{ member.id }}/wcm/{{ wcm.id }}/will-can">
+    <div class="grid">
+      <label>
+        <strong>Will</strong>（なりたい姿・やりたいこと）
+        <textarea name="will" rows="4" placeholder="将来こうなりたい、これをやりたい…">{{ wcm.will or '' }}</textarea>
+      </label>
+      <label>
+        <strong>Can</strong>（強み・できること）
+        <textarea name="can" rows="4" placeholder="得意なこと、これまで培ってきたスキル…">{{ wcm.can or '' }}</textarea>
+      </label>
+    </div>
+    <button type="submit">Will / Can を保存</button>
+  </form>
+  {% else %}
+  {# 過去期: 読み取り専用 #}
+  <div class="grid">
+    <div>
+      <strong>Will</strong>
+      <p>{{ wcm.will or '（未入力）' }}</p>
+    </div>
+    <div>
+      <strong>Can</strong>
+      <p>{{ wcm.can or '（未入力）' }}</p>
+    </div>
+  </div>
+  {% endif %}
+</article>
+
+{# Must #}
+<article>
+  <header>
+    <h2>Must（ミッション）<small style="font-size:0.7em;color:gray">{{ period_label(selected_period) }}</small></h2>
+  </header>
+
+  {% if wcm.musts %}
+  <figure>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:2rem">#</th>
+        <th>①テーマ</th>
+        <th>②中項目</th>
+        <th>③個別ミッション</th>
+        <th>④達成基準</th>
+        <th>⑤進捗</th>
+        {% if is_current %}<th>操作</th>{% endif %}
+      </tr>
+    </thead>
+    <tbody>
+    {% for m in wcm.musts %}
+    <tr>
+      <td>{{ loop.index }}</td>
+      <td><span class="text-truncate" title="{{ m.theme }}">{{ m.theme }}</span></td>
+      <td><span class="text-truncate" title="{{ m.sub_theme or '' }}">{{ m.sub_theme or '—' }}</span></td>
+      <td><span class="text-truncate" title="{{ m.mission }}">{{ m.mission }}</span></td>
+      <td><span class="text-truncate" title="{{ m.criteria or '' }}">{{ m.criteria or '—' }}</span></td>
+      <td><span class="text-truncate" title="{{ m.progress or '' }}">{{ m.progress or '—' }}</span></td>
+      {% if is_current %}
+      <td class="action-group">
+        <a href="/members/{{ member.id }}/wcm/{{ wcm.id }}/musts/{{ m.id }}/edit"
+           role="button" class="outline secondary">編集</a>
+        <form method="post"
+              action="/members/{{ member.id }}/wcm/{{ wcm.id }}/musts/{{ m.id }}/move"
+              style="display:inline">
+          <input type="hidden" name="direction" value="up" />
+          <button type="submit" class="outline secondary" title="上へ"
+                  {% if loop.first %}disabled{% endif %}>↑</button>
+        </form>
+        <form method="post"
+              action="/members/{{ member.id }}/wcm/{{ wcm.id }}/musts/{{ m.id }}/move"
+              style="display:inline">
+          <input type="hidden" name="direction" value="down" />
+          <button type="submit" class="outline secondary" title="下へ"
+                  {% if loop.last %}disabled{% endif %}>↓</button>
+        </form>
+        <form method="post"
+              action="/members/{{ member.id }}/wcm/{{ wcm.id }}/musts/{{ m.id }}/delete"
+              style="display:inline"
+              onsubmit="return confirm('ミッション「{{ m.mission }}」を削除しますか？')">
+          <button type="submit" class="outline contrast">削除</button>
+        </form>
+      </td>
+      {% endif %}
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </figure>
+  {% else %}
+  <p>ミッションがまだ登録されていません。</p>
+  {% endif %}
+
+  {% if is_current %}
+  {# Must 追加フォーム #}
+  <details>
+    <summary>＋ ミッションを追加</summary>
+    <form method="post"
+          action="/members/{{ member.id }}/wcm/{{ wcm.id }}/musts"
+          style="margin-top:1rem">
+      <div class="grid">
+        <label>
+          ①テーマ（大項目）
+          <input type="text" name="theme" required maxlength="200"
+                 placeholder="例: 品質向上" />
+        </label>
+        <label>
+          ②中項目（任意）
+          <input type="text" name="sub_theme" maxlength="200"
+                 placeholder="例: テスト整備" />
+        </label>
+      </div>
+      <label>
+        ③個別ミッション
+        <input type="text" name="mission" required maxlength="300"
+               placeholder="例: ユニットテストカバレッジを80%以上にする" />
+      </label>
+      <label>
+        ④達成基準（任意）
+        <textarea name="criteria" rows="2"
+                  placeholder="例: coverage report で 80% 以上を確認"></textarea>
+      </label>
+      <label>
+        ⑤進捗（任意）
+        <textarea name="progress" rows="2"
+                  placeholder="現在の進捗状況を自由に記入…"></textarea>
+      </label>
+      <button type="submit">追加</button>
+    </form>
+  </details>
+  {% endif %}
+</article>
+
+{% else %}
+{# WCM 未作成 #}
+<article>
+  <p>{{ period_label(selected_period) }} の WCM はまだ作成されていません。</p>
+  {% if is_current %}
+  <form method="post" action="/members/{{ member.id }}/wcm/init">
+    <input type="hidden" name="period" value="{{ selected_period }}" />
+    <button type="submit">この期の WCM を開始する</button>
+  </form>
+  {% endif %}
+</article>
+{% endif %}
+
+{# ── タスク一覧 ── #}
+<article>
+  <header>
+    <div class="page-header">
+      <h2>未完了タスク（{{ tasks | length }} 件）</h2>
+      <div class="action-group">
+        <a href="/tasks/new?mission_id=" role="button" class="outline secondary"
+           hx-boost="false"
+           onclick="this.href='/tasks/new'">＋ タスクを追加</a>
+        <a href="/tasks?member_id={{ member.id }}" role="button" class="secondary">全タスクを見る</a>
+      </div>
+    </div>
+  </header>
+
+  {% if tasks %}
+  <figure><table>
+    <thead><tr>
+      <th>期限</th><th>タスク名</th><th>ミッション</th><th>会話</th><th>資料</th><th>操作</th>
+    </tr></thead>
+    <tbody>
+    {% for task in tasks %}
+    {% set is_overdue = task.deadline < today %}
+    <tr>
+      <td style="{{ 'color:var(--color-overdue)' if is_overdue else '' }};white-space:nowrap">
+        {{ task.deadline.strftime("%Y-%m-%d") }}{% if is_overdue %} ⚠{% endif %}
+      </td>
+      <td><span class="text-truncate" title="{{ task.name }}">{{ task.name }}</span></td>
+      <td>{{ task.mission.mission if task.mission else '—' }}</td>
+      <td>{% if task.conversation_location %}<a href="{{ task.conversation_location }}" target="_blank">🔗</a>{% endif %}</td>
+      <td>{% if task.materials_url %}<a href="{{ task.materials_url }}" target="_blank">📄</a>{% endif %}</td>
+      <td class="action-group">
+        <a href="/tasks/{{ task.id }}/edit" role="button" class="secondary">編集</a>
+        <form method="post" action="/tasks/{{ task.id }}/done" style="display:inline">
+          <button type="submit">完了</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></figure>
+  {% else %}
+  <p>未完了のタスクはありません。</p>
+  {% endif %}
+</article>
+
+{% endblock %}

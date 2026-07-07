@@ -1,0 +1,50 @@
+[project]
+name = "work-dashboard"
+version = "0.1.0"
+description = "マネージャー向けチーム運営支援 Web アプリ"
+requires-python = ">=3.12"
+dependencies = [
+    "alembic>=1.18.4",
+    "fastapi>=0.136.0",
+    "jinja2>=3.1.6",
+    "python-multipart>=0.0.26",
+    "sqlalchemy>=2.0.49",
+    "uvicorn[standard]>=0.44.0",
+]
+
+[dependency-groups]
+dev = [
+    "hatchling>=1.29.0",
+    "httpx>=0.28.1",
+    "pre-commit>=4.5.1",
+    "pytest>=9.0.3",
+    "pytest-anyio>=0.0.0",
+    "ruff>=0.15.11",
+]
+
+[tool.uv]
+package = true
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/work_dashboard"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v"
+
+[tool.ruff]
+line-length = 100
+src = ["src"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "ANN"]
+ignore = [
+  "B008",    # FastAPI の Depends/Form はデフォルト引数が必須パターン
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["ANN"]

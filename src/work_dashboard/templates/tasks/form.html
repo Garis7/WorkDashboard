@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}{{ "タスク編集" if task else "タスク追加" }} | WorkDashboard{% endblock %}
+
+{% block content %}
+<h1>{{ "タスク編集" if task else "タスク追加" }}</h1>
+
+<form method="post"
+      action="{{ '/tasks/' ~ task.id ~ '/edit' if task else '/tasks' }}">
+
+  <label>
+    タスク名
+    <input type="text" name="name"
+           value="{{ task.name if task else '' }}"
+           placeholder="〇〇の件を確認する" required maxlength="300" />
+  </label>
+
+  <label>
+    担当メンバー
+    <select name="member_id" required
+            hx-get="/tasks/api/missions"
+            hx-trigger="change"
+            hx-target="#mission-select"
+            hx-include="[name='member_id']">
+      <option value="">選択してください</option>
+      {% for m in members %}
+      <option value="{{ m.id }}"
+              {% if m.id == preselect_member_id %}selected{% endif %}>
+        {{ m.name }}{% if m.is_self %} （本人）{% endif %}
+      </option>
+      {% endfor %}
+    </select>
+  </label>
+
+  <label>
+    関連ミッション（任意）
+    <select name="mission_id" id="mission-select">
+      <option value="">— 紐づけなし —</option>
+      {% for ms in missions %}
+      <option value="{{ ms.id }}"
+              {% if ms.id == preselect_mission_id %}selected{% endif %}>
+        [{{ ms.theme }}] {{ ms.mission }}
+      </option>
+      {% endfor %}
+    </select>
+  </label>
+
+  <label>
+    期限
+    <input type="date" name="deadline"
+           value="{{ task.deadline.strftime('%Y-%m-%d') if task else '' }}"
+           required />
+  </label>
+
+  <label>
+    会話場所 URL（Teams / Slack 等）
+    <input type="url" name="conversation_location"
+           value="{{ task.conversation_location or '' }}"
+           placeholder="https://teams.microsoft.com/..." />
+  </label>
+
+  <label>
+    資料 URL
+    <input type="url" name="materials_url"
+           value="{{ task.materials_url or '' }}"
+           placeholder="https://sharepoint.com/..." />
+  </label>
+
+  <div class="action-group">
+    <button type="submit">保存</button>
+    <a href="/tasks" role="button" class="secondary">キャンセル</a>
+  </div>
+</form>
+{% endblock %}

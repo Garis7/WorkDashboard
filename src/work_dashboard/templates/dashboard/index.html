@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}ダッシュボード | WorkDashboard{% endblock %}
+
+{% block content %}
+<h1>ダッシュボード</h1>
+<p>本日: {{ today.strftime("%Y-%m-%d") }}</p>
+
+{# 期限超過セクション #}
+<section class="section-overdue">
+  <h2>⚠ 期限超過 ({{ overdue | length }} 件)</h2>
+  {% if overdue %}
+  <figure><table>
+    <thead><tr>
+      <th>期限</th><th>タスク名</th><th>担当</th><th>ミッション</th><th>会話</th><th>資料</th><th>操作</th>
+    </tr></thead>
+    <tbody>
+    {% for task in overdue %}
+    <tr>
+      <td style="color:var(--color-overdue);white-space:nowrap">{{ task.deadline.strftime("%Y-%m-%d") }}</td>
+      <td><span class="text-truncate" title="{{ task.name }}">{{ task.name }}</span></td>
+      <td>{{ task.member.name }}</td>
+      <td>{{ task.mission.mission if task.mission else "—" }}</td>
+      <td>{% if task.conversation_location %}<a href="{{ task.conversation_location }}" target="_blank">🔗</a>{% endif %}</td>
+      <td>{% if task.materials_url %}<a href="{{ task.materials_url }}" target="_blank">📄</a>{% endif %}</td>
+      <td class="action-group">
+        <a href="/tasks/{{ task.id }}/edit" role="button" class="secondary">編集</a>
+        <form method="post" action="/tasks/{{ task.id }}/done" style="display:inline">
+          <button type="submit" class="contrast">完了</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></figure>
+  {% else %}
+  <p>期限超過のタスクはありません。</p>
+  {% endif %}
+</section>
+
+{# 期限近接セクション #}
+<section class="section-upcoming">
+  <h2>📅 期限が近いタスク・7日以内 ({{ upcoming | length }} 件)</h2>
+  {% if upcoming %}
+  <figure><table>
+    <thead><tr>
+      <th>期限</th><th>残り</th><th>タスク名</th><th>担当</th><th>ミッション</th><th>会話</th><th>資料</th><th>操作</th>
+    </tr></thead>
+    <tbody>
+    {% for task in upcoming %}
+    {% set days_left = (task.deadline - today).days %}
+    <tr>
+      <td style="white-space:nowrap">{{ task.deadline.strftime("%Y-%m-%d") }}</td>
+      <td>あと{{ days_left }}日</td>
+      <td><span class="text-truncate" title="{{ task.name }}">{{ task.name }}</span></td>
+      <td>{{ task.member.name }}</td>
+      <td>{{ task.mission.mission if task.mission else "—" }}</td>
+      <td>{% if task.conversation_location %}<a href="{{ task.conversation_location }}" target="_blank">🔗</a>{% endif %}</td>
+      <td>{% if task.materials_url %}<a href="{{ task.materials_url }}" target="_blank">📄</a>{% endif %}</td>
+      <td class="action-group">
+        <a href="/tasks/{{ task.id }}/edit" role="button" class="secondary">編集</a>
+        <form method="post" action="/tasks/{{ task.id }}/done" style="display:inline">
+          <button type="submit">完了</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></figure>
+  {% else %}
+  <p>7日以内に期限が来るタスクはありません。</p>
+  {% endif %}
+</section>
+
+<p><a href="/tasks/new" role="button">＋ タスクを追加</a></p>
+{% endblock %}

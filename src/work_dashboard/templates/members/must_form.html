@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}ミッション編集 | WorkDashboard{% endblock %}
+
+{% block content %}
+<h1>ミッション編集</h1>
+<p><a href="/members/{{ member_id }}?period={{ wcm.period }}">← メンバー詳細に戻る</a></p>
+
+<form method="post"
+      action="/members/{{ member_id }}/wcm/{{ wcm.id }}/musts/{{ must.id }}/edit">
+
+  <div class="grid">
+    <label>
+      ①テーマ（大項目）
+      <input type="text" name="theme" value="{{ must.theme }}"
+             required maxlength="200" />
+    </label>
+    <label>
+      ②中項目（任意）
+      <input type="text" name="sub_theme" value="{{ must.sub_theme or '' }}"
+             maxlength="200" />
+    </label>
+  </div>
+
+  <label>
+    ③個別ミッション
+    <input type="text" name="mission" value="{{ must.mission }}"
+           required maxlength="300" />
+  </label>
+
+  <label>
+    ④達成基準（任意）
+    <textarea name="criteria" rows="3">{{ must.criteria or '' }}</textarea>
+  </label>
+
+  <label>
+    ⑤進捗（任意）
+    <textarea name="progress" rows="3">{{ must.progress or '' }}</textarea>
+  </label>
+
+  <div class="action-group">
+    <button type="submit">保存</button>
+    <a href="/members/{{ member_id }}?period={{ wcm.period }}" role="button" class="secondary">
+      キャンセル
+    </a>
+  </div>
+</form>
+{% endblock %}
