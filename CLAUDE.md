@@ -2,58 +2,53 @@
 # このプロパティは、Claude Codeが関連するドキュメントの更新を検知するために必要です。消去しないでください。
 ---
 
-# WorkDashboard — マネージャー向けチーム運営支援 Web アプリ
+# WorkDashboard — Claude Code 作業指針
 
-共有ルールの要約。詳細は `.claude/rules/` を参照。
+マネージャー向けチーム運営支援の個人用 FastAPI アプリ。
+リポジトリ: https://github.com/Garis7/WorkDashboard
+仕様は `docs/`（requirements / data_model / screens）、共有ルールは `.claude/rules/`（testing / logging / performance / github / review / database / frontend）。
 
-## 技術スタック
-- Python 3.12+ (`.python-version` = 3.12), uv
-- Ruff, pytest, pre-commit
-- FastAPI + Jinja2 + htmx 2.x
-- SQLAlchemy 2.x + Alembic + SQLite
-- PicoCSS v2
-- レイヤード構成: Router → Service → Repository → Model
-  （`src/work_dashboard/` 配下: `routers/` `services/` `repositories/` `models/`）
+## 必須ルール（最優先・違反不可）
+1. いきなりコードを書かない。まず仕様の曖昧さを洗い出し、影響範囲・テスト方針を短く整理する
+2. 設計判断では実装方針を3つ比較して採用案を選び、バグが出やすい箇所とテスト観点を先に挙げる
+3. 画面・データ仕様は推測せず `docs/` と実物（既存テンプレート・DB）で確認してから書く
+4. 既存慣習を優先し、変更は小さく保つ。clever より決定的でデバッグしやすい実装
+5. 振る舞い変更には `tests/` のテストを追加・更新（t-wada流TDD: `testing.md`）
+6. 完了前に `make check-all`（format / lint / test）を通す。UI 変更は実アプリ起動での動作確認まで
+7. I/O・外部API・DB・例外境界・重い処理にはログ
+8. 最適化は計測後
 
-## 基本原則
-- 既存コードと既存慣習を優先し、変更は小さく保つ
-- 振る舞い変更には対応テストを追加・更新
-- 完了前に `make check-all`（format / lint / test）を通す
-  - typecheck は未導入（Makefile でスキップ中）。導入したらここを更新
-- I/O、外部API、永続化、例外境界、重い処理にはログ
-- 最適化は計測後に行う
+## 固有の注意（共有ルールより優先）
+- Python は **3.12**（`.python-version`）。テンプレート由来の「3.14+」に引きずられない
+- typecheck は未導入（Makefile でスキップ中）。Hypothesis / `tests/property/` も未導入
+- `make` が無いシェル（Git Bash 等）では Makefile の中身どおり `uv run ...` に読み替え
+- アプリ再起動が反映されない時は、旧 python プロセスがポート8000を握っている可能性。`Get-NetTCPConnection -LocalPort 8000` で占有 PID を特定して停止する
+- git 識別情報はリポジトリローカル設定済み（Garis7 / GitHub noreply）
 
-## 実装フロー
-1. 既存コード・関連テスト・`docs/`（requirements / data_model / screens）を確認
-2. 影響範囲・テスト方針を短く整理してから小さく実装
-3. テスト追加・更新（`tests/unit/` `tests/integration/`）
-4. `make check-all`
+## 構成（`src/work_dashboard/`）
+- レイヤ: Router (`routers/`) → Service (`services/`) → Repository (`repositories/`) → Model (`models/`)
+- 描画: `templates/`（Jinja2 + htmx 2.x + PicoCSS v2、CDN 読込）/ `static/css/app.css`
+- 画面: `/`（dashboard）/ members / tasks。基盤: `main.py` / `database.py` / `utils.py`
+- 周辺: `alembic/` / `docs/` / `tests/`（unit / integration）。起動補助: `start.bat` / `run.ps1`
 
-## よく使うコマンド
+## スタック / コマンド
+Python 3.12+ / uv / FastAPI / Jinja2 / SQLAlchemy 2.x + Alembic + SQLite / htmx 2.x / PicoCSS v2 / pytest / Ruff / pre-commit
+
 ```bash
-make setup        # uv sync + pre-commit install
-make check-all    # format + lint + test
-make run          # uvicorn 起動 (port 8000)
-make migrate      # alembic upgrade head
-uv add package_name
-uv add --dev package_name
-uv run pytest
+make setup      # uv sync + pre-commit install
+make check-all  # format + lint + test
+make run        # uvicorn 起動 (port 8000)
+make migrate    # alembic upgrade head
 ```
 
-## コーディング規約
-- 実装コードは `src/work_dashboard/`、テストは `tests/`
-- 現代的な型構文（`X | None`、組み込みジェネリクス）を使用
-- Docstring は NumPy 形式
-- 命名: PascalCase / snake_case / UPPER_SNAKE / `_prefix`
+## 規約
+- Ruff: `line-length=100` / `select=["E","F","I","UP","B","SIM","ANN"]`（tests は ANN 除外、B008 は ignore）。型は `X | None`, `list[T]`。Docstring は NumPy 形式。命名: PascalCase / snake_case / UPPER_SNAKE / `_prefix`
+- 設計=Opus、実装=Sonnet（`opusplan` / 実装のみは `/model sonnet`）
+- サブエージェント: 検索・単純処理=Haiku、実装・レビュー=Sonnet、設計=Opus
+- effort: 単純作業=低 / 設計・デバッグ=高。Workflow はコスト最大ゆえ明示依頼時のみ
 
-## 分割ルール（`.claude/rules/`）
-- testing.md / logging.md / performance.md
-- github.md / review.md / database.md / frontend.md
-
-## 自己改善エコシステム
-環境の維持・改善はユーザーレベルの `/self-improve` スキル（3 モード）で行う。モデル非依存。
-- `decay` — 既存資産 7 系統（CLAUDE.md / rules / skills / memory / hooks / settings / commands）の腐敗検知
-- `distill` — セッションの教訓を lint > rules/CLAUDE.md > skill > memory の優先順で定着
-- `harvest` — 蒸留元台帳（`~/.claude/self-improvement/sources.md`）を巡回し新知見を取り込み
-
-原則: 採用より**見送り判断の記録**が資産。全判断を `~/.claude/self-improvement/decisions.md` に残す。
+## 自己改善エコシステム（モデル非依存の運用）
+- ①腐敗検知: 月1目安で `/decay-check`（CLAUDE.md・rules・skills・memory・hooks・settings・commands の7系統監査）
+- ②教訓定着: セッション終盤に `/retro`（教訓を lint / CLAUDE.md / skill / memory へ仕分け）
+- ③外部蒸留: 月1目安で `/distill`（`~/.claude/self-improvement/sources.md` の巡回。**見送り判断の記録が資産**）
+- 本書は 60 行以内を維持。足すときは先に削る
